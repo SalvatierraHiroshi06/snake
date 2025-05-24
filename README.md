@@ -1,9 +1,8 @@
-# snake
-Juego de la viborita Progra-IV
 import turtle
 import time
 import random
 import os
+from abc import ABC, abstractmethod
 
 # Constantes del juego
 DELAY = 0.1
@@ -23,9 +22,10 @@ COLOR_REYES = "orange"
 ARCHIVO_RECORD = "record.txt"
 
 # Abstract Factory
-class FabricaComida:
+class FabricaComida(ABC):
+    @abstractmethod
     def crear_comida(self):
-        raise NotImplementedError
+        pass
 
 class FabricaVenenosa(FabricaComida):
     def crear_comida(self):
@@ -44,7 +44,7 @@ class FabricaReyes(FabricaComida):
         return ComidaReyes()
 
 # Clase base Comida
-class Comida:
+class Comida(ABC):
     def __init__(self):
         self.segmento = turtle.Turtle()
         self.segmento.speed(0)
@@ -62,8 +62,9 @@ class Comida:
         self.x = x
         self.y = y
     
+    @abstractmethod
     def aplicar_efecto(self, snake):
-        raise NotImplementedError
+        pass
 
 class ComidaVenenosa(Comida):
     def __init__(self):
@@ -170,7 +171,7 @@ class Snake:
         self.ventana.onkeypress(self.ir_izquierda, "Left")
         self.ventana.onkeypress(self.ir_derecha, "Right")
         self.ventana.onkeypress(self.reiniciar, "space")
-    
+
     def mostrar_menu_inicio(self):
         menu = turtle.Turtle()
         menu.hideturtle()
@@ -178,10 +179,8 @@ class Snake:
         menu.goto(0, 0)
         menu.write("Bienvenido al Snake Game\n\nUsa las flechas para moverte.\nPresiona 'Espacio' para comenzar.", align="center", font=("Courier", 16, "normal"))
         self.ventana.update()
-        # Esperar hasta que el usuario presione espacio para continuar
         self.ventana.onkeypress(lambda: menu.clear(), "space")
         self.ventana.listen()
-        # Pausa aquí esperando la tecla espacio para limpiar menú y seguir
         while menu.isvisible():
             self.ventana.update()
             time.sleep(0.1)
@@ -200,7 +199,6 @@ class Snake:
             f.write(str(self.record))
 
     def generar_comidas(self):
-        # Crear NUM_COMIDAS alimentos simultáneos
         for _ in range(NUM_COMIDAS):
             fabrica = random.choice(self.fabricas_comida)
             comida = fabrica.crear_comida()
@@ -208,9 +206,9 @@ class Snake:
 
     def actualizar_puntaje(self):
         texto = f"Puntaje: {self.puntaje}  Nivel: {self.nivel}  Récord: {self.record}\n"
-        texto += "Comidas disponibles: Verde (+1), Amarillo (+3), Naranja (+5), Morado (-1)"
+        texto += "Comidas: Verde(+1) Amarillo(+3) Naranja(+5) Morado(-1)"
         self.marcador.clear()
-        self.marcador.write(texto, align="center", font=("Courier", 18, "normal"))
+        self.marcador.write(texto, align="center", font=("Courier", 16, "normal"))
 
     def ir_arriba(self):
         if self.cabeza.direccion != "down":
@@ -261,14 +259,11 @@ class Snake:
                 comida.segmento.goto(1000, 1000)
                 comida.segmento.hideturtle()
                 self.comidas.remove(comida)
-                # Generar una nueva comida
-                fabrica = random.choice(self.fabricas_comida)
-                nueva_comida = fabrica.crear_comida()
-                self.comidas.append(nueva_comida)
-                # Verificar si se pasa nivel
+                nueva = random.choice(self.fabricas_comida).crear_comida()
+                self.comidas.append(nueva)
                 if self.puntaje >= self.nivel * PUNTOS_POR_NIVEL and self.nivel < NIVELES:
                     self.nivel += 1
-                    self.delay *= 0.8  # Aumenta la velocidad
+                    self.delay *= 0.8
                     self.delay_temporal = self.delay
                 return True
         return False
@@ -288,26 +283,20 @@ class Snake:
     def reiniciar(self):
         self.cabeza.goto(0, 0)
         self.cabeza.direccion = "stop"
-
-        # Ocultar segmentos
         for segmento in self.segmentos[1:]:
             segmento.goto(1000, 1000)
             segmento.hideturtle()
-
         self.segmentos = [self.cabeza]
         self.puntaje = 0
         self.nivel = 1
         self.delay = DELAY
         self.delay_temporal = DELAY
         self.tiempo_efecto = 0
-
-        # Limpiar comidas y generar nuevas
         for comida in self.comidas:
             comida.segmento.goto(1000, 1000)
             comida.segmento.hideturtle()
         self.comidas.clear()
         self.generar_comidas()
-
         self.actualizar_puntaje()
 
     def juego(self):
